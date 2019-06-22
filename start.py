@@ -12,6 +12,12 @@ def get_start_widget(appbase, jupbase):
     <td valign="top"><ul>
         <li><a href="{appbase}/submit_phonons.ipynb" target="_blank">Submit</a>
     </ul></td>
+    <td valign="top"><ul>
+        <li><a href="{appbase}/visualize_phonons.ipynb" target="_blank">Visualize</a>
+    </ul></td>
+    <td valign="top"><ul>
+        <li><a href="{appbase}/submit_phonons_molecule.ipynb" target="_blank">Submit Molecule</a>
+    </ul></td>
     
 
     </tr></table>
