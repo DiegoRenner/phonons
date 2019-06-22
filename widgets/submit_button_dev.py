@@ -41,7 +41,7 @@ class SubmitButton(ipw.VBox):
         self.submit_out = ipw.Output()
 
         self.job_details['walltime']=self.walltime.value
-        def set_walltime():
+        def set_walltime(c):
             self.job_details['walltime']=self.walltime.value
             
         def on_btn_submit_press(b):

@@ -1,3 +1,4 @@
+
 from apps.surfaces.widgets.find_mol import mol_ids_range
 import numpy as np
 import itertools
@@ -499,11 +500,26 @@ class Get_CP2K_Input():
             elif self.workchain == 'MoleculeOptWorkChain':
                 full_dft_topology = 'mol.xyz'  
             elif self.workchain == 'GWWorkChain':
-                full_dft_topology = 'mol.xyz'            
+                full_dft_topology = 'mol.xyz'
+            elif self.workchain == 'PhononsWorkchain':
+                full_dft_topology = 'mol_on_slab.xyz'
             else:
                 full_dft_topology = 'bulk.xyz'
             self.inp_dict['topology'] = full_dft_topology    
             self.inp['FORCE_EVAL'] = [self.get_force_eval_qs_dft()]
+        
+        if self.workchain == 'PhononsWorkchain':
+            self.inp['VIBRATIONAL_ANALYSIS'] = {
+                    'NPROC_REP': '%d' % self.inp_dict['nproc_rep'],
+                    'DX': '0.005',
+                    'INTENSITIES': 'T',
+                    'PRINT': { 
+                        'PROGRAM_RUN_INFO': {'_': 'ON'}
+                    }
+                }
+            
+                    
+
 
         
 
@@ -747,7 +763,7 @@ class Get_CP2K_Input():
                     'EXTRAPOLATION_ORDER': '3',
                     'DFTB': {
                         'SELF_CONSISTENT': 'T',
-                        'DISPERSION': '%s' % (str(slef.inp_dict['vdw_switch'])),
+                        'DISPERSION': '%s' % (str(self.inp_dict['vdw_switch'])),
                         'ORTHOGONAL_BASIS': 'F',
                         'DO_EWALD': 'F',
                         'PARAMETER': {
@@ -868,19 +884,19 @@ class Get_CP2K_Input():
         ### FORCEVAL MAIN        
         force_eval = {
             'METHOD': 'Quickstep',
-            'DFT': {
-                'UKS': uks_logic,
-                'MULTIPLICITY': str(self.inp_dict['multiplicity']),
-                'BASIS_SET_FILE_NAME': basis_set,
-                'POTENTIAL_FILE_NAME': 'POTENTIAL',
-                'CHARGE':str(self.inp_dict['charge']),
-                'QS': self.sections_dict[self.workchain]['qs'],
-                'MGRID': {
-                    'CUTOFF': str(self.inp_dict['mgrid_cutoff']),
-                    'NGRIDS': '5',
-                },
-                'SCF': scf_opt[self.inp_dict['ot_switch']],
-                'XC': self.sections_dict[self.workchain]['xc'],
+            'DFT': {'PRINT': {'MOMENTS': {' ': ' '}},
+                    'UKS': uks_logic,
+                    'MULTIPLICITY': str(self.inp_dict['multiplicity']),
+                    'BASIS_SET_FILE_NAME': basis_set,
+                    'POTENTIAL_FILE_NAME': 'POTENTIAL',
+                    'CHARGE':str(self.inp_dict['charge']),
+                    'QS': self.sections_dict[self.workchain]['qs'],
+                    'MGRID': {
+                        'CUTOFF': str(self.inp_dict['mgrid_cutoff']),
+                        'NGRIDS': '5',
+                    },
+                    'SCF': scf_opt[self.inp_dict['ot_switch']],
+                    'XC': self.sections_dict[self.workchain]['xc'],
             },
             'SUBSYS': {
                 'CELL': {'A': '%f %f %f' % (self.cell[0],self.cell[1],self.cell[2]),

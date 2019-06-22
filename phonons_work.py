@@ -21,7 +21,7 @@ from ase.neighborlist import NeighborList
 from ase import Atoms
 from io import StringIO, BytesIO
 
-from apps.phonons.get_cp2k_input_dev import Get_CP2K_Input
+from apps.phonons.widgets.get_cp2k_input_dev import Get_CP2K_Input
 from apps.surfaces.widgets import find_mol
 
 class PhononsWorkchain(WorkChain):
@@ -157,12 +157,12 @@ class PhononsWorkchain(WorkChain):
         inputs['parameters'] = ParameterData(dict=inp)
         
         # settings
-        settings = ParameterData(dict={'additional_retrieve_list': ['*.mol_vib']})
+        settings = ParameterData(dict={'additional_retrieve_list': ['*.mol']})
         inputs['settings'] = settings
 
         # resources
         inputs['_options'] = {
-            'resources' : {'num_machines'             : input_dict['num_machines'],
+            'resources' : {'num_machines'             : input_dict['num_machines']*input_dict['nreplicas'],
                            'num_mpiprocs_per_machine' : input_dict['proc_node'],
                            'num_cores_per_mpiproc'    : input_dict['num_cores_per_mpiproc']
                           },
