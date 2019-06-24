@@ -98,8 +98,8 @@ class PhononsWorkchain(WorkChain):
         atoms = structure.get_ase()# slow
         input_dict['atoms'] = atoms
         
-        basis_f = SinglefileData(file='/project/apps/surfaces/Files/RI_HFX_BASIS_all')
-        inputs['file']['ri_hfx_basis_all'] = basis_f
+        #basis_f = SinglefileData(file='/project/apps/surfaces/Files/RI_HFX_BASIS_all')
+        #inputs['file']['ri_hfx_basis_all'] = basis_f
         
         
         molslab_f = cls.mk_aiida_file(atoms, "mol_on_slab.xyz")

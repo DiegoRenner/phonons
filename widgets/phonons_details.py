@@ -46,6 +46,9 @@ class PHNSDetails(ipw.VBox):
         self.num_rep = ipw.IntText(value=job_details['nreplicas'],
                            description='# Replicas',
                            style=style, layout=layout)
+        self.tot_num_nodes = ipw.Text(value=str(job_details['nreplicas']),
+                           description='Total # Nodes',
+                           style=style, layout=layout)
         
         
         
@@ -57,12 +60,12 @@ class PHNSDetails(ipw.VBox):
         
         
         update_jd_widgets = [
-            self.proc_node, self.proc_rep, self.num_rep
+            self.proc_node, self.proc_rep, self.num_rep, self.tot_num_nodes
         ]
         for w in update_jd_widgets:
             w.observe(lambda v: self.update_job_details(), 'value')
         
-        self.neb_out = ipw.Output()
+        #self.neb_out = ipw.Output()
         ### ---------------------------------------------------------
         ### Define the ipw structure and create parent VBOX
 
@@ -70,7 +73,7 @@ class PHNSDetails(ipw.VBox):
             self.proc_node,
             self.proc_rep, 
             self.num_rep,
-            self.neb_out
+            self.tot_num_nodes
         ]
             
         super(PHNSDetails, self).__init__(children=children, **kwargs)
@@ -81,14 +84,18 @@ class PHNSDetails(ipw.VBox):
         self.job_details['proc_node']=self.proc_node.value     
         self.job_details['nproc_rep']=self.proc_rep.value
         self.job_details['nreplicas']=self.num_rep.value
+        self.job_details['tot_num_nodes']=self.tot_num_nodes.value
+        
         
         
 
-    def reset(self, proc_node=1, proc_rep=12, num_rep=1, num_calcs=6000):  
+    def reset(self, proc_node=1, proc_rep=12, num_rep=1, num_calcs=6000, tot_num_nodes=1):  
         
-        self.nodes_geopt.value = proc_node
+       
         self.proc_rep.value = proc_rep
         self.num_rep.value = num_rep
+        self.proc_node.value = proc_node
+        self.tot_num_nodes = num_nodes
         
         #self.job_details={}
         self.update_job_details()

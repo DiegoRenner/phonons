@@ -7,30 +7,16 @@ from aiida.orm import Node
 from collections import OrderedDict
 import ipywidgets as ipw
 import datetime
+import os.path
+
 
 class StructureBrowser(ipw.VBox):
     
     def __init__(self):
-        # Find all process labels
-        qb = QueryBuilder()
-        qb.append(WorkCalculation,
-                  project="attributes._process_label",
-                  filters={
-                      'attributes': {'!has_key': 'source_code'}
-                  }
-        )
-        qb.order_by({WorkCalculation:{'ctime':'desc'}})
-        process_labels = []
-        for i in qb.iterall():
-            if i[0] not in process_labels:
-                process_labels.append(i[0])
-
+       
         layout = ipw.Layout(width="900px")
-
-        self.mode = ipw.RadioButtons(options=['all', 'uploaded', 'edited', 'calculated'],
-                                     layout=ipw.Layout(width="25%"))
-        
-        
+        max_mode = 0
+        modes_options = range(0,max_mode)
         # Date range
         self.dt_now = datetime.datetime.now()
         self.dt_end = self.dt_now - datetime.timedelta(days=10)
@@ -49,25 +35,16 @@ class StructureBrowser(ipw.VBox):
         self.age_selection = ipw.VBox([self.date_text, ipw.HBox([self.date_start, self.date_end]), self.btn_date],
                                       layout={'border': '1px solid #fafafa', 'padding': '1em'})
 
-
-        # Labels
-        self.drop_label = ipw.Dropdown(options=(['All',] + process_labels),
-                                       description='Process Label',
-                                       style = {'description_width': '120px'},
-                                       layout={'width': '50%'})
-
         self.btn_date.on_click(self.search)
-        self.mode.observe(self.search, names='value')
-        self.drop_label.observe(self.search, names='value')
         
         hr = ipw.HTML('<hr>')
         box = ipw.VBox([self.age_selection,
-                        hr,
-                        ipw.HBox([self.mode, self.drop_label])])
+                        hr])
         
         self.results = ipw.Dropdown(layout=layout)
+        self.modes = ipw.Dropdown(layout=layout)
         self.search()
-        super(StructureBrowser, self).__init__([box, hr, self.results])
+        super(StructureBrowser, self).__init__([box, hr, self.results,self.modes])
     
     
     def preprocess(self):
@@ -79,9 +56,6 @@ class StructureBrowser(ipw.VBox):
 
     
     def search(self, c=None):
-        self.preprocess()
-        
-        qb = QueryBuilder()
         try: # If the date range is valid, use it for the search
             self.start_date = datetime.datetime.strptime(self.date_start.value, '%Y-%m-%d')
             self.end_date = datetime.datetime.strptime(self.date_end.value, '%Y-%m-%d') + datetime.timedelta(hours=24)
@@ -91,56 +65,45 @@ class StructureBrowser(ipw.VBox):
 
             self.date_start.value = self.start_date.strftime('%Y-%m-%d')
             self.date_end.value = self.end_date.strftime('%Y-%m-%d')
+        
+        qb = QueryBuilder()
+        qb.append(Node, filters={'type': 'data.folder.FolderData.', 'ctime':{'and':[{'<=': self.end_date},{'>': self.start_date}]}}, tag='output')
+        qb.append(Node,filters={'label': 'phonons_opt'}, input_of='output')
+        
 
-        filters = {}
-        filters['ctime'] = {'and':[{'<=': self.end_date},{'>': self.start_date}]}        
-        if self.drop_label.value != 'All':
-            qb.append(WorkCalculation,
-                      filters={
-                          'attributes._process_label': self.drop_label.value
-                      })
-            
-            qb.append(JobCalculation,
-                      output_of=WorkCalculation)
-            
-            qb.append(StructureData,
-                      output_of=JobCalculation,
-                      filters=filters)
-        else:        
-            if self.mode.value == "uploaded":
-                qb2 = QueryBuilder()
-                qb2.append(StructureData, project=["id"])
-                qb2.append(Node, input_of=StructureData)
-                processed_nodes = [n[0] for n in qb2.all()]
-                if processed_nodes:
-                    filters['id'] = {"!in":processed_nodes}
-                qb.append(StructureData, filters=filters)
-
-            elif self.mode.value == "calculated":
-                qb.append(JobCalculation)
-                qb.append(StructureData, output_of=JobCalculation, filters=filters)
-
-            elif self.mode.value == "edited":
-                qb.append(WorkCalculation)
-                qb.append(StructureData, output_of=WorkCalculation, filters=filters)
-
-            else:
-                self.mode.value == "all"
-                qb.append(StructureData, filters=filters)
-
-        qb.order_by({StructureData:{'ctime':'desc'}})
+        #qb.order_by({StructureData:{'ctime':'desc'}})
         matches = set([n[0] for n in qb.iterall()])
         matches = sorted(matches, reverse=True, key=lambda n: n.ctime)
         
         c = len(matches)
         options = OrderedDict()
-        options["Select a Structure (%d found)"%c] = False
+        options["Select a Structure"] = 'False'
 
         for n in matches:
-            label  = "PK: %d" % n.pk
-            label += " | " + n.ctime.strftime("%Y-%m-%d %H:%M")
-            label += " | " + n.get_extra("formula")
-            label += " | " + n.description
-            options[label] = n
+            file_path = n.out.retrieved.folder.abspath + "/path/aiida-VIBRATIONS-1.mol"
+            if os.path.isfile(file_path):
+                    label  = "PK: %d" % n.pk
+                    label += " | " + n.ctime.strftime("%Y-%m-%d %H:%M")
+                    options[label] = n
 
         self.results.options = options
+        
+    def set_modes(self,max_modes=100,c=None):
+        options = OrderedDict()
+        options["Select a Mode (%d found)"%max_modes] = 'False'
+        for i in range(0,max_modes):
+            label = 'Mode # %d' % i
+            options[label] = i
+        self.modes.options = options
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
