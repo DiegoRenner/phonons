@@ -48,24 +48,64 @@ class ViewerDetails(ipw.VBox):
         self.viewer.add_ball_and_stick(aspectRatio=MOL_ASPECT, opacity=1.0,component=0)
         
         self.viewer.component_1.clear_representations()
-        self.viewer.add_ball_and_stick(aspectRatio=REST_ASPECT, opacity=1.0,component=1)
+        self.viewer.add_ball_and_stick(aspectRatio=REST_ASPECT, opacity=1.0,component=2)
         
         self.viewer.add_unitcell()
         
-    def setup(self, file_path,atoms,  mode, details=None): 
+    def setup(self, file_path, atoms,  mode, details=None): 
        
         a, freq, vibr_displacements = read_molden(file_path)
-        trajectory = get_trajectory(mode,a, freq, vibr_displacements)
+        trajectory_mol = get_trajectory(mode,atoms, freq, vibr_displacements)
+        trajectory_slab = get_trajectory(mode,atoms, freq, vibr_displacements)
         
-        viewer = nglview.show_asetraj(trajectory, gui=True)
+        if details is None:
+            mol_inds = list(np.arange(0, len(atoms)))
+            rest_inds = []
+        else:
+            mol_inds = [item for sublist in details['all_molecules'] for item in sublist]
+            rest_inds = details['slabatoms']+details['bottom_H']+details['adatoms'] +details['unclassified']
         
-        cell_z = atoms.cell[2, 2]
+        #trajectory_mol = trajectory
+        for i in range(0,len(trajectory_mol)):
+            del trajectory_mol[i][rest_inds]
+            
+        #trajectory_slab = trajectory
+        for i in range(0,len(trajectory_slab)):
+            del trajectory_slab[i][mol_inds]
+        
+            
+            
+            
+        
+        ase_traj_mol = nglview.ASETrajectory(trajectory_mol)
+        ase_traj_slab = nglview.ASETrajectory(trajectory_slab)
+
+        
+        #viewer = nglview.show_asetraj(trajectory, gui=True)
+        #viewer[0].add_representation('ball_and_stick',selection=list(np.arange(0, 46)))
+        #viewer.add_component(nglview.ASEStructure(atoms), default_representation=False)
+        #viewer.add_ball_and_stick(aspectRatio=MOL_ASPECT, opacity=1.0,component=1)
+        
+        viewer = nglview.NGLWidget(gui=True)
+        viewer.add_trajectory(ase_traj_slab, default_representation=False)
+        viewer.add_trajectory(ase_traj_mol, default_representation=False)
+        viewer.add_representation('ball+stick',aspectRatio=REST_ASPECT, opacity=1.0,component=0)
+        viewer.add_representation('ball+stick',aspectRatio=MOL_ASPECT, opacity=1.0,component=1)
+        
+        
+        
         com = atoms.get_center_of_mass()
-        def_orientation = viewer._camera_orientation
-        top_z_orientation = [1.0, 0.0, 0.0, 0,
-                             0.0, 1.0, 0.0, 0,
-                             0.0, 0.0, -np.max([cell_z, 30.0]) , 0,
-                             -com[0], -com[1], -com[2], 1]
+        cell_z = atoms.cell[2, 2]
+        #top_z_orientation = [1.0, 0.0, 0.0, 0,
+        #                     0.0, 1.0, 0.0, 0,
+        #                     0.0, 0.0, np.max([cell_z, 30.0]) , 0,
+        #                     -com[0], -com[1], -com[2], 1]
+        cell_x = atoms.cell[1, 1]
+        top_z_orientation = [0.0 , np.max([cell_x,40])*np.sin(np.pi*1/25), np.max([cell_x,40])*np.cos(np.pi*1/25), 0.0,
+                             1.0, 0.0, 0.0, 0.0,
+                             0.0 , np.max([cell_x,40])*np.cos(np.pi*1/25), -np.max([cell_x,40])*np.sin(np.pi*1/25), 0.0,
+                             -com[0], -com[1], -com[2], 1.0]
+        
         viewer._set_camera_orientation(top_z_orientation)
         with self.vib_viewer:
             clear_output()
@@ -147,13 +187,16 @@ def read_molden(file):
 
 
 def get_trajectory(mode,a, freq, vibr_displacements):
-    enhance_disp = 1.0
+    enhance_disp = 10.0
     time_arr = np.linspace(0.0, 2*np.pi, 20)
-
+    
     trajectory = []
     for time in time_arr:
         vibr_atoms = Atoms(a.get_chemical_symbols(), a.positions+enhance_disp*np.sin(time)*vibr_displacements[mode])
         trajectory.append(vibr_atoms)
+        #a.positions = a.get_positions()+enhance_disp*np.sin(time)*vibr_displacements[mode]        
+        #trajectory.append(a)
+        
     return trajectory
     
     

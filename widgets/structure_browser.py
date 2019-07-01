@@ -71,7 +71,6 @@ class StructureBrowser(ipw.VBox):
         qb.append(Node,filters={'label': 'phonons_opt'}, input_of='output')
         
 
-        #qb.order_by({StructureData:{'ctime':'desc'}})
         matches = set([n[0] for n in qb.iterall()])
         matches = sorted(matches, reverse=True, key=lambda n: n.ctime)
         
